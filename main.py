@@ -69,10 +69,10 @@ Your explanation should focus on the answer to the question, should be well stru
 with facts and numbers if available and a minimum of 600 words. While your answer should be detailed, it should also be friendly 
 and imformative to a wide audience. 
 
-You should strive to write your explanations as long as necessary to cover all relevant and necessary information provided. 
+You should strive to write your explanations as long as necessary to cover all relevant and necessary information summarized. 
 you MUST write your explanation with markdown syntax.
 YOU MUST determine your own concrete and valid opinion based on the given information. Do NOT deter to general and meaningless commentary on the topic. 
-Write all used source urls at the end of your explanation, and make sure not to add duplicated sources, but only one reference for each website
+Write all used source urls at the end of your explanation, and DO NOT add duplicated sources
 Please do your best, this is going into a data sensitive application and is very important to my career
 """
 
