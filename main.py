@@ -12,6 +12,10 @@ from dotenv import load_dotenv
 import json
 import os
 
+# Set OpenAI API Key 
+load_dotenv()
+OPENAI_KEY = os.getenv("OPENAI_API_KEY")
+
 # Setup for web searcher 
 RESULTS_PER_QUESTION = 3
 search = DuckDuckGoSearchAPIWrapper()
@@ -21,11 +25,8 @@ def web_searcher(query: str, num_results: int = RESULTS_PER_QUESTION):
     results = search.results(query, num_results)
     return [r["link"] for r in results]
 
-# Set OpenAI API Key 
-load_dotenv()
-OPENAI_KEY = os.getenv("OPENAI_API_KEY")
-
 # Prompt Definition
+# Summary 
 SUMMARY_PROMPT  = """{text}
 
 ------------
@@ -39,6 +40,7 @@ If the question cannot be answered using the text, you MUST simply summarize the
 
 summary_prompt = ChatPromptTemplate.from_template(SUMMARY_PROMPT)
 
+# Search 
 search_prompt = ChatPromptTemplate.from_messages(
     [
         (
@@ -49,6 +51,34 @@ search_prompt = ChatPromptTemplate.from_messages(
             "You must respond with a list of strings in the following format: "
             '["query 1", "query 2", "query 3"].',
         ),
+    ]
+)
+
+# Educate 
+WRITER_SYSTEM_PROMPT = """You are a helpful AI tutor who is a master of all subjects dedicated to helping students learn and understand various topics in a friendly and focused manner. 
+Your sole purpose is to provide well written and clear explanations about a given quest that empower students to grasp complex concepts. 
+"""
+
+EDUCATOR_PROMPT = """Information:
+------------
+{search_summary}
+------------
+
+Using the above information, answer the following question or topic: "{question}" in a detailed manor, citing your sources and elaborating on important points. -- \
+Your explanation should focus on the answer to the question, should be well structured, informative, in depth, -
+with facts and numbers if available and a minimum of 1200 words.
+
+You should strive to write your explanations as long as you can using all relevant and necessary information provided. 
+you MUST write your explanation with markdown syntax.
+YOU MUST determine your own concrete and valid opinion based on the given information. Do NOT deter to general and meaningless commentary on the topic. 
+Write all used source urls at the end of your explanation, and make sure not to add duplicated sources, but only one reference for each website
+Please do your best, this is going into a data sensitive application and is very important to my career
+"""
+
+educate_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", WRITER_SYSTEM_PROMPT),
+        ("user", EDUCATOR_PROMPT),
     ]
 )
 
@@ -63,6 +93,8 @@ def scrape_text(url):
     except Exception as E:
         print(E)
         return f"Failed to retrieve the webpage: Status Code {response.status_code}"
+    except TypeError as E:
+        return f"Failed to retrieve content: {E}"
     
 url = "https://docs.pydantic.dev/latest/"
 
@@ -82,8 +114,19 @@ web_search_chain = RunnablePassthrough.assign(
 # Chain to generate search queries for the given question
 search_question_chain = search_prompt | ChatOpenAI(temperature=1) | StrOutputParser() | (lambda response: json.loads(response))
 
+# Researches given topic and summarizes based off results 
+research_chain = search_question_chain | (lambda input: [{"question": q} for q in input]) | web_search_chain.map()
+
+def collapse_list_of_lists(list_of_lists):
+    content = []
+    for l in list_of_lists:
+        content.append("\n\n".join(l))
+    return "\n\n".join(content)
+
 # Main chain 
-chain = search_question_chain | (lambda input: [{"question": q} for q in input]) | web_search_chain.map()
+chain = RunnablePassthrough.assign(
+    search_summary= research_chain | collapse_list_of_lists
+) | educate_prompt | ChatOpenAI(model="gpt-3.5-turbo-1106") | StrOutputParser() 
 
 # Invoke the chain
 response = chain.invoke(
@@ -93,4 +136,4 @@ response = chain.invoke(
 )
 
 # Print Output
-print(response[0])
+print(response)
