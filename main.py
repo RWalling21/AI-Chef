@@ -90,21 +90,30 @@ def scrape_text(url):
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, "html.parser")
             page_text = soup.get_text(separator=" ", strip=True)
+            if type(page_text) == None:
+                raise Exception("No page text scrapable")
             return page_text
     except Exception as E:
         print(E)
         return f"Failed to retrieve the webpage: Status Code {response.status_code}"
-    
-url = "https://docs.pydantic.dev/latest/"
 
-#  Chain definition
+# Given a list_of_lists collapse into a single list
+def collapse_list_of_lists(list_of_lists):
+    content = []
+    for l in list_of_lists:
+        content.append("\n\n".join(l))
+    return "\n\n".join(content)
 
+
+# Chain definitions
 # Chain to scrape page data and summarize using a ChaptGPT Model
 scrape_and_summarize_chain = RunnablePassthrough.assign(
+    # Summary is the chain below
     summary=RunnablePassthrough.assign(
     # Scrape the first 10000 lines of text from the given url.
     text=lambda page_content: (page_content, scrape_text(page_content["url"]))[1][:10000]
 ) | summary_prompt | ChatOpenAI(model="gpt-3.5-turbo-1106") | StrOutputParser() 
+# Adding the URL to the context makes it easier for the model to cite sources 
 ) | (lambda input: f"URL: {input['url']}\n\nSUMMARY: {input['summary']}") 
 
 # Chain to search for external information using user input
@@ -112,18 +121,11 @@ web_search_chain = RunnablePassthrough.assign(
     urls = lambda input: web_searcher(input["question"])
 ) | (lambda input: [{"question": input["question"], "url": u} for u in input["urls"]]) | scrape_and_summarize_chain.map()
 
-
 # Chain to generate search queries for the given question
 search_question_chain = search_prompt | ChatOpenAI(temperature=1) | StrOutputParser() | (lambda response: json.loads(response))
 
 # Researches given topic and summarizes based off results 
 research_chain = search_question_chain | (lambda input: [{"question": q} for q in input]) | web_search_chain.map()
-
-def collapse_list_of_lists(list_of_lists):
-    content = []
-    for l in list_of_lists:
-        content.append("\n\n".join(l))
-    return "\n\n".join(content)
 
 # Main chain 
 chain = RunnablePassthrough.assign(
@@ -133,7 +135,7 @@ chain = RunnablePassthrough.assign(
 # Invoke the chain
 response = chain.invoke(
     {
-        "question": "What is string theory? And how does it relate to black holes",
+        "question": "Teach me the brief history of human beings, from the beginning to now",
     }
 )
 
