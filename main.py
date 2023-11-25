@@ -66,9 +66,10 @@ EDUCATOR_PROMPT = """Information:
 
 Using the above information, answer the following question or topic: "{question}" in a detailed manor, citing your sources and elaborating on important points. -- \
 Your explanation should focus on the answer to the question, should be well structured, informative, in depth, -
-with facts and numbers if available and a minimum of 1200 words.
+with facts and numbers if available and a minimum of 600 words. While your answer should be detailed, it should also be friendly 
+and imformative to a wide audience. 
 
-You should strive to write your explanations as long as you can using all relevant and necessary information provided. 
+You should strive to write your explanations as long as necessary to cover all relevant and necessary information provided. 
 you MUST write your explanation with markdown syntax.
 YOU MUST determine your own concrete and valid opinion based on the given information. Do NOT deter to general and meaningless commentary on the topic. 
 Write all used source urls at the end of your explanation, and make sure not to add duplicated sources, but only one reference for each website
@@ -93,8 +94,6 @@ def scrape_text(url):
     except Exception as E:
         print(E)
         return f"Failed to retrieve the webpage: Status Code {response.status_code}"
-    except TypeError as E:
-        return f"Failed to retrieve content: {E}"
     
 url = "https://docs.pydantic.dev/latest/"
 
@@ -102,14 +101,17 @@ url = "https://docs.pydantic.dev/latest/"
 
 # Chain to scrape page data and summarize using a ChaptGPT Model
 scrape_and_summarize_chain = RunnablePassthrough.assign(
+    summary=RunnablePassthrough.assign(
     # Scrape the first 10000 lines of text from the given url.
     text=lambda page_content: (page_content, scrape_text(page_content["url"]))[1][:10000]
 ) | summary_prompt | ChatOpenAI(model="gpt-3.5-turbo-1106") | StrOutputParser() 
+) | (lambda input: f"URL: {input['url']}\n\nSUMMARY: {input['summary']}") 
 
 # Chain to search for external information using user input
 web_search_chain = RunnablePassthrough.assign(
     urls = lambda input: web_searcher(input["question"])
 ) | (lambda input: [{"question": input["question"], "url": u} for u in input["urls"]]) | scrape_and_summarize_chain.map()
+
 
 # Chain to generate search queries for the given question
 search_question_chain = search_prompt | ChatOpenAI(temperature=1) | StrOutputParser() | (lambda response: json.loads(response))
@@ -131,7 +133,7 @@ chain = RunnablePassthrough.assign(
 # Invoke the chain
 response = chain.invoke(
     {
-        "question": "What is the difference between special, and general relativity",
+        "question": "What is string theory? And how does it relate to black holes",
     }
 )
 
