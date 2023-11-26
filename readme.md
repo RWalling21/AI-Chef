@@ -42,5 +42,16 @@ python serve.py
 ```
 3. The server will run on localhost:8000. Use the /educator/playground endpoint to interact with the system.
 
+## Todo 
+This project is still in early development, there are still many planned improvements 
+1. Qualitiative Metrics
+2. Scrape overhaul
+3. Agents
+4. UI-Overhaul
+5. Permanent hosting
+6. Prompt overhaul
+
+Please check back to see how development has progressed!
+
 ## License
 This project is under the MIT License.
