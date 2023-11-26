@@ -37,6 +37,7 @@ OPENAI_API_KEY=your_api_key_here
 
 2. Start the server:
 ```bash
+cd /src
 python serve.py
 ```
 3. The server will run on localhost:8000. Use the /educator/playground endpoint to interact with the system.
