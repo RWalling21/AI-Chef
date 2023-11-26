@@ -16,7 +16,7 @@ def scrape_text(url):
         response = requests.get(url)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, "html.parser")
-            page_text = soup.get_text(separator=" ", strip=True)
+            page_text = soup.get_text(separator=" ", strip=True)[:10000]
             if type(page_text) == None:
                 raise Exception("No page text scrapable")
             return page_text

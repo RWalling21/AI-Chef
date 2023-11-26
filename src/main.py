@@ -28,8 +28,7 @@ def collapse_list_of_lists(list_of_lists):
 scrape_and_summarize_chain = RunnablePassthrough.assign(
     # Summary is the chain below
     summary=RunnablePassthrough.assign(
-    # Scrape the first 10000 lines of text from the given url.
-    text=lambda page_content: (page_content, scrape.scrape_text(page_content["url"]))[1][:10000]
+    text=lambda page_content: scrape.scrape_text(page_content["url"])
 ) | prompt.summary_prompt | ChatOpenAI(model="gpt-3.5-turbo-1106") | StrOutputParser() 
 # Adding the URL to the context makes it easier for the model to cite sources 
 ) | (lambda input: f"URL: {input['url']}\n\nSUMMARY: {input['summary']}") 
