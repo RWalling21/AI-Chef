@@ -4,7 +4,7 @@ from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import RunnablePassthrough, RunnableLambda
 from langchain.utilities import DuckDuckGoSearchAPIWrapper
 from langserve import add_routes
-#import uvicorn
+import uvicorn
 from fastapi import FastAPI
 import requests
 from bs4 import BeautifulSoup
@@ -132,12 +132,20 @@ chain = RunnablePassthrough.assign(
     search_summary= research_chain | collapse_list_of_lists
 ) | educate_prompt | ChatOpenAI(model="gpt-3.5-turbo-1106") | StrOutputParser() 
 
-# Invoke the chain
-response = chain.invoke(
-    {
-        "question": "Teach me the brief history of human beings, from the beginning to now",
-    }
+# Langserve Web Server
+app = FastAPI(
+  title="LangChain Server",
+  version="1.0",
+  description="A simple api server using Langchain's Runnable interfaces",
 )
 
-# Print Output
-print(response)
+add_routes(
+    app,
+    chain,
+    path="/educator",
+)
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="localhost", port=8000)
