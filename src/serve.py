@@ -10,10 +10,10 @@ app = FastAPI(
 )
 
 # Import Chain
-from .main import chain
+import main
 add_routes(
     app,
-    chain,
+    main.chain,
     path="/educator",
 )
 
