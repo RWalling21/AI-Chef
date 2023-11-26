@@ -39,4 +39,7 @@ OPENAI_API_KEY=your_api_key_here
 ```bash
 python serve.py
 ```
-The server will start at localhost:8000/educator/playground
+3. The server will run on localhost:8000. Use the /educator/playground endpoint to interact with the system.
+
+## License
+This project is under the MIT License.
